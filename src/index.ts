@@ -90,23 +90,7 @@ const importExcel = (
   })
 }
 
-/**
- * Capture function errors better
- * @param fn function
- * @param args args
- * @returns Promise()
- */
-export function callWithErrorHandling(fn: Function, args?: unknown[]) {
-  let res
-  try {
-    res = args ? fn(...args) : fn()
-  } catch (err) {
-    console.log('fn error:', err)
-  }
-  return res
-}
-
 export default {
-  importExcel: importExcel,
-  exportExcel: exportExcel
+  importExcel,
+  exportExcel
 }

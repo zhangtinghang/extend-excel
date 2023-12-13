@@ -1,90 +1,71 @@
 'use strict'
-
-Object.defineProperty(exports, '__esModule', { value: true })
-
-var XLSX = require('xlsx')
-var FileSaver = require('file-saver')
-var lodash = require('lodash')
-var moment = require('moment')
-
-function _interopNamespaceDefault(e) {
-  var n = Object.create(null)
-  if (e) {
-    for (var k in e) {
-      n[k] = e[k]
-    }
+Object.defineProperty(exports, '__esModule', { value: !0 })
+var e = require('xlsx'),
+  t = require('file-saver'),
+  r = require('lodash')
+function o(e) {
+  var t = Object.create(null)
+  if (e) for (var r in e) t[r] = e[r]
+  return (t.default = e), t
+}
+var a = o(e)
+var s = {
+  importExcel: (e, t = { onlyFirst: !1, XLSXReadOptions: {} }) => {
+    const { onlyFirst: r, XLSXReadOptions: o } = t,
+      s = e.name,
+      n = new FileReader()
+    return (
+      n.readAsBinaryString(e),
+      new Promise((e, t) => {
+        n.onload = (n) => {
+          try {
+            const t = n.target?.result,
+              l = a.read(t, { type: 'binary', ...o })
+            let c = []
+            for (var i in l.Sheets)
+              if (
+                l.Sheets.hasOwnProperty(i) &&
+                ((c = c.concat(a.utils.sheet_to_json(l.Sheets[i]))), r)
+              )
+                break
+            e({ name: s, data: c })
+          } catch (e) {
+            t(e)
+          }
+        }
+      })
+    )
+  },
+  exportExcel: (
+    e,
+    o,
+    s = { fileName: 'export', sheetName: 'sheet1', XLSXOption: {} }
+  ) => {
+    const { fileName: n, sheetName: i, XLSXOption: l } = s
+    if (!o || !Array.isArray(o))
+      throw new Error('The sourceData needs to be in array format!')
+    const c = r
+        .chain(o)
+        .map((t) => {
+          const o = r.cloneDeep(t)
+          return Object.keys(o).reduce((t, r) => {
+            if (e[r])
+              if (e[r] && 'object' == typeof e[r]) {
+                const a = e[r].key,
+                  s = e[r].filter(o[r])
+                t[a] = s
+              } else t[e[r]] = o[r]
+            return t
+          }, {})
+        })
+        .value(),
+      p = a.utils.book_new(),
+      u = a.utils.json_to_sheet(c)
+    a.utils.book_append_sheet(p, u, i)
+    const y = { bookType: 'xlsx', bookSST: !1, type: 'array', ...l },
+      f = a.write(p, y)
+    t.saveAs(new Blob([f], { type: 'application/octet-stream' }), `${n}.xlsx`)
   }
-  n.default = e
-  return n
 }
-
-var XLSX__namespace = /*#__PURE__*/ _interopNamespaceDefault(XLSX)
-
-const exportExcel = (headers, sourceData, options) => {
-  const { fileName = 'export', sheetName = 'sheet1' } = options
-  if (!sourceData || !Array.isArray(sourceData))
-    throw new Error('The sourceData needs to be in array format!')
-  // 处理header和value值映射
-  const data = lodash
-    .chain(sourceData)
-    .map((item) => {
-      const ne = lodash.cloneDeep(item)
-      const newRzt = Object.keys(ne).reduce((newData, key) => {
-        if (headers[key]) {
-          if (headers[key] && typeof headers[key] === 'object') {
-            const tkey = headers[key].key
-            const fVal = headers[key].filter(ne[key])
-            newData[tkey] = fVal
-          } else {
-            newData[headers[key]] = ne[key]
-          }
-        }
-        return newData
-      }, {})
-      return newRzt
-    })
-    .value()
-  const workbook = XLSX__namespace.utils.book_new()
-  const ws = XLSX__namespace.utils.json_to_sheet(data)
-  XLSX__namespace.utils.book_append_sheet(workbook, ws, sheetName)
-  // bookType: file type of output，type：data type of out，bookSST: is Shared String Table，eg: 官方解释是，如果开启生成速度会下降，但在低版本IOS设备上有更好的兼容性
-  const wopts = { bookType: 'xlsx', bookSST: false, type: 'array' }
-  const wbout = XLSX__namespace.write(workbook, wopts)
-  FileSaver.saveAs(
-    new Blob([wbout], { type: 'application/octet-stream' }),
-    `${fileName} ${moment().format('YYYYMMDDHHmmss')}.xlsx`
-  )
-}
-const importExcel = (file, options) => {
-  const name = file.name
-  const reader = new FileReader()
-  reader.readAsBinaryString(file)
-  return new Promise((resolve, reject) => {
-    reader.onload = (evt) => {
-      try {
-        const data = evt.target?.result
-        const workbook = XLSX__namespace.read(data, { type: 'binary' })
-        let persons = [] // 存储获取到的数据
-        // 遍历每张表读取
-        for (var sheet in workbook.Sheets) {
-          if (workbook.Sheets.hasOwnProperty(sheet)) {
-            persons = persons.concat(
-              XLSX__namespace.utils.sheet_to_json(workbook.Sheets[sheet])
-            )
-            // break; // 如果只取第一张表，就取消注释这行
-          }
-        }
-        resolve({ name, data: persons })
-      } catch (e) {
-        reject(e)
-      }
-    }
-  })
-}
-var index = {
-  importExcel,
-  exportExcel
-}
-
-exports.default = index
+exports.default = s
 //# sourceMappingURL=index.cjs.map

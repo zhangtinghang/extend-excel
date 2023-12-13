@@ -1,6 +1,6 @@
 {
   "name": "extend-excel",
-  "version": "1.0.0",
+  "version": "0.0.1",
   "description": "A export and inport excel funciton.",
   "type": "module",
   "main": "src/index.ts",
@@ -14,7 +14,8 @@
     "build": "rollup -c",
     "dev": "rollup -c -w",
     "lint": "eslint --cache --ext .ts src/**",
-    "format": "prettier --write --cache --parser typescript \"src/**/*.ts\""
+    "format": "prettier --write --cache --parser typescript \"src/**/*.ts\"",
+    "release": "release-it"
   },
   "repository": {
     "type": "git",
