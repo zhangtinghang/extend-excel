@@ -1,6 +1,6 @@
 {
   "name": "extend-excel",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "A export and inport excel funciton.",
   "type": "module",
   "main": "src/index.ts",
