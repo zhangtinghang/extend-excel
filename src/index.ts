@@ -7,13 +7,13 @@ import { DynamicObject, ExportExcelOptions, ImportExcelOptions } from './types'
 const exportExcel = (
   headers: DynamicObject,
   sourceData: DynamicObject[],
-  options: ExportExcelOptions = {
-    fileName: 'export',
-    sheetName: 'sheet1',
-    XLSXOption: {}
-  }
+  options?: ExportExcelOptions
 ) => {
-  const { fileName, sheetName, XLSXOption } = options
+  const {
+    fileName = 'export',
+    sheetName = 'sheet1',
+    XLSXOption = {}
+  } = options || {}
   if (!sourceData || !Array.isArray(sourceData)) {
     throw new Error('The sourceData needs to be in array format!')
   }
@@ -53,14 +53,12 @@ const exportExcel = (
   )
 }
 
-const importExcel = (
-  file: File,
-  options: ImportExcelOptions = {
-    onlyFirst: false,
-    XLSXReadOptions: {}
-  }
-) => {
-  const { onlyFirst, XLSXReadOptions } = options
+const importExcel = (file: File, options?: ImportExcelOptions) => {
+  const {
+    onlyFirst = false,
+    XLSXReadOptions = {},
+    keyMapping = {}
+  } = options || {}
   const name = file.name
   const reader: FileReader = new FileReader()
   reader.readAsBinaryString(file)
@@ -69,7 +67,7 @@ const importExcel = (
       try {
         const data = evt.target?.result
         const workbook = XLSX.read(data, { type: 'binary', ...XLSXReadOptions })
-        let persons: DynamicObject = [] // 存储获取到的数据
+        let persons: DynamicObject[] = [] // 存储获取到的数据
         // 遍历每张表读取
         for (var sheet in workbook.Sheets) {
           if (workbook.Sheets.hasOwnProperty(sheet)) {
@@ -82,6 +80,10 @@ const importExcel = (
             // break;
           }
         }
+
+        if (keyMapping && Object.keys(keyMapping).length > 0)
+          persons = keysMapping(persons, keyMapping)
+
         resolve({ name, data: persons })
       } catch (e) {
         reject(e)
@@ -90,7 +92,29 @@ const importExcel = (
   })
 }
 
-export default {
-  importExcel,
-  exportExcel
+const keysMapping = (
+  data: DynamicObject[],
+  keyMapping: DynamicObject
+): DynamicObject[] => {
+  const taskQueue: DynamicObject[] = []
+  for (let index = 0; index < data.length; index++) {
+    const sourceVal = data[index]
+    const taskItem: DynamicObject = {}
+    for (const key in keyMapping) {
+      if (Object.prototype.hasOwnProperty.call(sourceVal, key)) {
+        taskItem[keyMapping[key]] = sourceVal[key]
+      }
+    }
+    if (Object.keys(taskItem).length > 0) taskQueue.push(taskItem)
+  }
+  return taskQueue
 }
+
+const extendExcel = {
+  importExcel,
+  exportExcel,
+  keysMapping
+}
+
+export default extendExcel
+export { importExcel, exportExcel, keysMapping }

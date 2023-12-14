@@ -6,12 +6,13 @@ export interface DynamicObject {
 }
 
 export interface ExportExcelOptions {
-  fileName: string
-  sheetName: string
-  XLSXOption: WritingOptions
+  fileName?: string
+  sheetName?: string
+  XLSXOption?: WritingOptions
 }
 
 export interface ImportExcelOptions {
-  onlyFirst: Boolean // only first sheet
-  XLSXReadOptions: ParsingOptions
+  keyMapping?: DynamicObject // excel headers mapping
+  onlyFirst?: Boolean // only first sheet
+  XLSXReadOptions?: ParsingOptions
 }

@@ -17,6 +17,32 @@ const pkg = JSON.parse(
 
 const __dirname = fileURLToPath(new URL('.', import.meta.url))
 
+const sharedOptions = {
+  treeshake: {
+    moduleSideEffects: 'no-external',
+    propertyReadSideEffects: false,
+    tryCatchDeoptimization: false
+  },
+  output: {
+    dir: path.resolve(__dirname, 'dist'),
+    name: 'extend-excel',
+    entryFileNames: `[name].js`,
+    exports: 'named'
+  },
+  onwarn(warning, warn) {
+    if (warning.message.includes('Package subpath')) {
+      return
+    }
+    if (warning.message.includes('Use of eval')) {
+      return
+    }
+    if (warning.message.includes('Circular dependency')) {
+      return
+    }
+    warn(warning)
+  }
+}
+
 function createNodePlugins(isProduction, sourceMap, declarationDir) {
   return [
     clear({
@@ -30,100 +56,33 @@ function createNodePlugins(isProduction, sourceMap, declarationDir) {
       declarationDir: declarationDir !== false ? declarationDir : undefined
     }),
     commonjs({
-      extensions: ['.js'],
-      // Optional peer deps of ws. Native deps that are mostly for performance.
-      // Since ws is not that perf critical for us, just ignore these deps.
-      ignore: ['bufferutil', 'utf-8-validate']
+      extensions: ['.js']
     }),
     json(),
     isProduction && terser()
   ]
 }
 
-const sharedNodeOptions = defineConfig({
-  treeshake: {
-    moduleSideEffects: 'no-external',
-    propertyReadSideEffects: false,
-    tryCatchDeoptimization: false
-  },
-  output: {
-    dir: path.resolve(__dirname, 'dist'),
-    name: 'extend-excel',
-    entryFileNames: `[name].js`,
-    chunkFileNames: 'chunks/dep-[hash].js',
-    exports: 'named',
-    format: 'esm',
-    externalLiveBindings: false,
-    freeze: false
-  },
-  onwarn(warning, warn) {
-    // node-resolve complains a lot about this but seems to still work?
-    if (warning.message.includes('Package subpath')) {
-      return
-    }
-    // we use the eval('require') trick to deal with optional deps
-    if (warning.message.includes('Use of eval')) {
-      return
-    }
-    if (warning.message.includes('Circular dependency')) {
-      return
-    }
-    warn(warning)
-  }
-})
-
-function createNodeConfig(isProduction) {
+function createConfig(format, isProduction) {
   return defineConfig({
-    ...sharedNodeOptions,
+    ...sharedOptions,
     input: {
       index: path.resolve(__dirname, 'src/index.ts')
     },
     output: [
       {
-        ...sharedNodeOptions.output,
-        sourcemap: !isProduction
+        ...sharedOptions.output,
+        format: format === 'esm' ? 'esm' : 'cjs',
+        sourcemap: !isProduction,
+        entryFileNames: `[name].${format === 'esm' ? 'mjs' : 'cjs'}`,
+        exports: 'auto'
       },
       isProduction && {
-        ...sharedNodeOptions.output,
-        entryFileNames: `[name].min.js`,
-        chunkFileNames: 'chunks/dep-[hash].min.js',
-        plugins: [terser()]
-      }
-    ],
-    external: [
-      ...Object.keys(pkg.dependencies),
-      ...(isProduction ? [] : Object.keys(pkg.devDependencies))
-    ],
-    plugins: createNodePlugins(
-      isProduction,
-      !isProduction,
-      // in production we use api-extractor for dts generation
-      // in development we need to rely on the rollup ts plugin
-      isProduction ? false : path.resolve(__dirname, 'dist')
-    )
-  })
-}
-
-function createCjsConfig(isProduction) {
-  return defineConfig({
-    ...sharedNodeOptions,
-    input: {
-      index: path.resolve(__dirname, 'src/index.ts')
-    },
-    output: [
-      {
-        ...sharedNodeOptions.output,
-        entryFileNames: `[name].cjs`,
-        chunkFileNames: 'chunks/dep-[hash].js',
-        format: 'cjs',
-        sourcemap: true
-      },
-      isProduction && {
-        ...sharedNodeOptions.output,
-        entryFileNames: `[name].min.cjs`,
-        chunkFileNames: 'chunks/dep-[hash].min.js',
-        format: 'cjs',
-        sourcemap: false,
+        ...sharedOptions.output,
+        format: format === 'esm' ? 'esm' : 'cjs',
+        sourcemap: !isProduction,
+        entryFileNames: `[name].min.${format === 'esm' ? 'mjs' : 'cjs'}`,
+        exports: 'auto',
         plugins: [terser()]
       }
     ],
@@ -132,17 +91,16 @@ function createCjsConfig(isProduction) {
       ...(isProduction ? [] : Object.keys(pkg.devDependencies))
     ],
     plugins: [
-      ...createNodePlugins(isProduction, !isProduction, false),
-      bundleSizeLimit(120)
+      ...createNodePlugins(
+        isProduction,
+        !isProduction,
+        path.resolve(__dirname, 'dist')
+      ),
+      format === 'cjs' && bundleSizeLimit(120)
     ]
   })
 }
 
-/**
- * Guard the bundle size
- *
- * @param limit size in KB
- */
 function bundleSizeLimit(limit) {
   return {
     name: 'bundle-limit',
@@ -166,9 +124,44 @@ function bundleSizeLimit(limit) {
 export default (commandLineArgs) => {
   const isDev = commandLineArgs.watch
   const isProduction = !isDev
-  // return defineConfig([])
-  return defineConfig([
-    createNodeConfig(isProduction),
-    createCjsConfig(isProduction)
-  ])
+  return [
+    createConfig('esm', isProduction),
+    createConfig('cjs', isProduction),
+    createUmdConfig(isProduction) // 添加 UMD 格式的配置
+  ]
+}
+
+// 添加 UMD 格式的配置
+function createUmdConfig(isProduction) {
+  return defineConfig({
+    ...sharedOptions,
+    input: {
+      index: path.resolve(__dirname, 'src/index.ts')
+    },
+    output: [
+      {
+        ...sharedOptions.output,
+        format: 'umd',
+        sourcemap: !isProduction,
+        entryFileNames: `[name].umd.js`,
+        name: 'extendExcel',
+        exports: 'auto'
+      },
+      isProduction && {
+        ...sharedOptions.output,
+        format: 'umd',
+        sourcemap: false,
+        entryFileNames: `[name].min.umd.js`,
+        name: 'extendExcel',
+        exports: 'auto',
+        plugins: [terser()]
+      }
+    ],
+    external: [],
+    plugins: createNodePlugins(
+      isProduction,
+      !isProduction,
+      path.resolve(__dirname, 'dist')
+    )
+  })
 }
