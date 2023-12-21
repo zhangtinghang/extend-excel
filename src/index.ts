@@ -81,7 +81,7 @@ const importExcel = (file: File, options?: ImportExcelOptions) => {
           }
         }
 
-        if (keyMapping && Object.keys(keyMapping).length > 0) {
+        if (keyMapping && Reflect.ownKeys(keyMapping).length > 0) {
           persons = keysMapping(persons, keyMapping)
         }
 
@@ -106,7 +106,7 @@ const keysMapping = (
         taskItem[keyMapping[key]] = sourceVal[key]
       }
     }
-    if (Object.keys(taskItem).length > 0) taskQueue.push(taskItem)
+    if (Reflect.ownKeys(taskItem).length > 0) taskQueue.push(taskItem)
   }
   return taskQueue
 }
