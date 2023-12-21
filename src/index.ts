@@ -81,8 +81,9 @@ const importExcel = (file: File, options?: ImportExcelOptions) => {
           }
         }
 
-        if (keyMapping && Object.keys(keyMapping).length > 0)
+        if (keyMapping && Object.keys(keyMapping).length > 0) {
           persons = keysMapping(persons, keyMapping)
+        }
 
         resolve({ name, data: persons })
       } catch (e) {
