@@ -1,6 +1,6 @@
 {
   "name": "extend-excel",
-  "version": "0.0.5",
+  "version": "0.0.6",
   "description": "A export and inport excel funciton.",
   "type": "module",
   "main": "dist/index.min.mjs",

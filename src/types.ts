@@ -1,5 +1,5 @@
 import type { WritingOptions, ParsingOptions } from 'xlsx'
-export type * from 'xlsx'
+// export type * from 'xlsx'
 
 export interface DynamicObject {
   [key: string]: any
